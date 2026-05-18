@@ -4,6 +4,7 @@ use axum::Router;
 use tower_http::cors::CorsLayer;
 use tracing::info;
 
+use crate::api;
 use crate::state::AppState;
 
 /// Forge Core 服务器
@@ -22,8 +23,7 @@ impl ForgeServer {
 
     /// 构建路由
     pub fn router(&self) -> Router {
-        Router::new()
-            // TODO: 注册 API 路由
+        api::routes()
             .layer(CorsLayer::permissive())
             .with_state(self.state.clone())
     }
