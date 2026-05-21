@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenForge Web Studio</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #app { display: flex; height: 100vh; }
+        
+        /* 侧边栏 */
+        .sidebar {
+            width: 280px;
+            background: #16213e;
+            border-right: 1px solid #0f3460;
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid #0f3460;
+        }
+        .sidebar-header h1 {
+            font-size: 18px;
+            color: #e94560;
+        }
+        .project-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        .project-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #0f3460;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .project-item:hover { background: #1a4a7a; }
+        .project-item.active { background: #e94560; }
+        .project-item h3 { font-size: 14px; margin-bottom: 4px; }
+        .project-item p { font-size: 12px; color: #888; }
+        
+        /* 主区域 */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .toolbar {
+            height: 50px;
+            background: #16213e;
+            border-bottom: 1px solid #0f3460;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            gap: 10px;
+        }
+        .toolbar button {
+            padding: 8px 16px;
+            background: #0f3460;
+            border: none;
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .toolbar button:hover { background: #e94560; }
+        
+        /* Canvas 区域 */
+        .canvas-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0a0a1a;
+            position: relative;
+        }
+        #game-canvas {
+            background: #000;
+            border: 2px solid #0f3460;
+        }
+        
+        /* 属性面板 */
+        .properties {
+            width: 260px;
+            background: #16213e;
+            border-left: 1px solid #0f3460;
+            padding: 15px;
+        }
+        .properties h3 {
+            font-size: 14px;
+            color: #e94560;
+            margin-bottom: 15px;
+        }
+        .property-group {
+            margin-bottom: 15px;
+        }
+        .property-group label {
+            display: block;
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 5px;
+        }
+        .property-group input, .property-group select {
+            width: 100%;
+            padding: 8px;
+            background: #0f3460;
+            border: 1px solid #1a4a7a;
+            color: #fff;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        
+        /* 模态框 */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 30px;
+            width: 400px;
+            max-width: 90%;
+        }
+        .modal h2 { margin-bottom: 20px; color: #e94560; }
+        .modal input {
+            width: 100%;
+            padding: 12px;
+            background: #0f3460;
+            border: 1px solid #1a4a7a;
+            color: #fff;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        .modal-buttons button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .modal-buttons .cancel { background: #0f3460; color: #fff; }
+        .modal-buttons .confirm { background: #e94560; color: #fff; }
+        
+        /* 状态栏 */
+        .status-bar {
+            height: 30px;
+            background: #16213e;
+            border-top: 1px solid #0f3460;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            font-size: 12px;
+            color: #888;
+        }
+        .status-bar .status-item { margin-right: 20px; }
+        .status-bar .status-ok { color: #4caf50; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- 侧边栏：项目列表 -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1>🎮 OpenForge</h1>
+            </div>
+            <div class="project-list" id="project-list">
+                <!-- 项目列表 -->
+            </div>
+        </div>
+        
+        <!-- 主区域 -->
+        <div class="main">
+            <div class="toolbar">
+                <button id="btn-new-project">+ 新建项目</button>
+                <button id="btn-new-scene">+ 新建场景</button>
+                <button id="btn-play">▶ 预览</button>
+                <button id="btn-build">📦 构建</button>
+                <button id="btn-save">💾 保存</button>
+            </div>
+            <div class="canvas-container">
+                <canvas id="game-canvas" width="800" height="600"></canvas>
+            </div>
+            <div class="status-bar">
+                <span class="status-item" id="status-connection">● 未连接</span>
+                <span class="status-item" id="status-project">当前项目: --</span>
+                <span class="status-item" id="status-fps">FPS: 0</span>
+            </div>
+        </div>
+        
+        <!-- 属性面板 -->
+        <div class="properties">
+            <h3>属性</h3>
+            <div class="property-group">
+                <label>画布尺寸</label>
+                <select id="prop-resolution">
+                    <option value="800x600">800 × 600</option>
+                    <option value="1280x720" selected>1280 × 720</option>
+                    <option value="1920x1080">1920 × 1080</option>
+                </select>
+            </div>
+            <div class="property-group">
+                <label>背景颜色</label>
+                <input type="color" id="prop-bg-color" value="#000000">
+            </div>
+            <div class="property-group">
+                <label>帧率</label>
+                <select id="prop-fps">
+                    <option value="30">30 FPS</option>
+                    <option value="60" selected>60 FPS</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 新建项目模态框 -->
+    <div class="modal-overlay" id="modal-new-project">
+        <div class="modal">
+            <h2>新建项目</h2>
+            <input type="text" id="input-project-name" placeholder="项目名称">
+            <input type="text" id="input-project-desc" placeholder="项目描述（可选）">
+            <div class="modal-buttons">
+                <button class="cancel" onclick="closeModal('modal-new-project')">取消</button>
+                <button class="confirm" onclick="createProject()">创建</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== API 配置 ====================
+        const API_BASE = 'http://localhost:3000/api/v1';
+        
+        // ==================== 状态 ====================
+        let currentProject = null;
+        let currentScene = null;
+        let projects = [];
+        let gameLoop = null;
+        let lastTime = 0;
+        let frameCount = 0;
+        let fps = 0;
+        
+        // ==================== Canvas ====================
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // ==================== 初始化 ====================
+        async function init() {
+            await loadProjects();
+            setupEventListeners();
+            startGameLoop();
+            updateConnectionStatus(true);
+        }
+        
+        // ==================== 项目管理 ====================
+        async function loadProjects() {
+            try {
+                const res = await fetch(`${API_BASE}/projects`);
+                projects = await res.json();
+                renderProjectList();
+            } catch (e) {
+                console.error('加载项目失败:', e);
+                updateConnectionStatus(false);
+            }
+        }
+        
+        function renderProjectList() {
+            const list = document.getElementById('project-list');
+            list.innerHTML = projects.map(p => `
+                <div class="project-item ${currentProject?.id === p.id ? 'active' : ''}" 
+                     onclick="selectProject('${p.id}')">
+                    <h3>${p.name}</h3>
+                    <p>${p.description || '无描述'}</p>
+                </div>
+            `).join('');
+            
+            if (projects.length === 0) {
+                list.innerHTML = '<p style="color:#666;text-align:center;padding:20px;">暂无项目</p>';
+            }
+        }
+        
+        async function selectProject(projectId) {
+            try {
+                const res = await fetch(`${API_BASE}/projects/${projectId}`);
+                currentProject = await res.json();
+                renderProjectList();
+                document.getElementById('status-project').textContent = `当前项目: ${currentProject.name}`;
+                
+                // 加载场景
+                const scenesRes = await fetch(`${API_BASE}/projects/${projectId}/scenes`);
+                const scenes = await scenesRes.json();
+                if (scenes.length > 0) {
+                    currentScene = scenes[0];
+                }
+            } catch (e) {
+                console.error('选择项目失败:', e);
+            }
+        }
+        
+        async function createProject() {
+            const name = document.getElementById('input-project-name').value.trim();
+            const description = document.getElementById('input-project-desc').value.trim();
+            
+            if (!name) {
+                alert('请输入项目名称');
+                return;
+            }
+            
+            try {
+                const res = await fetch(`${API_BASE}/projects`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, description })
+                });
+                
+                if (res.ok) {
+                    const project = await res.json();
+                    projects.push(project);
+                    renderProjectList();
+                    selectProject(project.id);
+                    closeModal('modal-new-project');
+                }
+            } catch (e) {
+                console.error('创建项目失败:', e);
+                alert('创建失败');
+            }
+        }
+        
+        // ==================== 场景渲染 ====================
+        function render() {
+            // 清空画布
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制网格（调试用）
+            drawGrid();
+            
+            // 绘制示例内容
+            drawDemoContent();
+        }
+        
+        function drawGrid() {
+            ctx.strokeStyle = '#1a1a2e';
+            ctx.lineWidth = 1;
+            
+            const gridSize = 50;
+            for (let x = 0; x < canvas.width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+        }
+        
+        function drawDemoContent() {
+            // 示例：绘制一些测试内容
+            ctx.fillStyle = '#e94560';
+            ctx.fillRect(100, 100, 50, 50);
+            
+            ctx.fillStyle = '#4caf50';
+            ctx.beginPath();
+            ctx.arc(300, 200, 30, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#fff';
+            ctx.font = '20px Arial';
+            ctx.fillText('OpenForge', 400, 300);
+            ctx.font = '14px Arial';
+            ctx.fillText('Click "新建项目" to start!', 380, 330);
+        }
+        
+        // ==================== 游戏循环 ====================
+        function startGameLoop() {
+            function loop(timestamp) {
+                // 计算 FPS
+                frameCount++;
+                if (timestamp - lastTime >= 1000) {
+                    fps = frameCount;
+                    frameCount = 0;
+                    lastTime = timestamp;
+                    document.getElementById('status-fps').textContent = `FPS: ${fps}`;
+                }
+                
+                render();
+                gameLoop = requestAnimationFrame(loop);
+            }
+            
+            lastTime = performance.now();
+            gameLoop = requestAnimationFrame(loop);
+        }
+        
+        // ==================== 事件处理 ====================
+        function setupEventListeners() {
+            // 新建项目
+            document.getElementById('btn-new-project').onclick = () => {
+                document.getElementById('modal-new-project').classList.add('show');
+            };
+            
+            // 预览
+            document.getElementById('btn-play').onclick = () => {
+                alert('预览功能开发中...');
+            };
+            
+            // 构建
+            document.getElementById('btn-build').onclick = async () => {
+                if (!currentProject) {
+                    alert('请先选择项目');
+                    return;
+                }
+                alert('构建功能开发中...\n项目: ' + currentProject.name);
+            };
+            
+            // 保存
+            document.getElementById('btn-save').onclick = async () => {
+                alert('保存功能开发中...');
+            };
+            
+            // 画布尺寸改变
+            document.getElementById('prop-resolution').onchange = (e) => {
+                const [w, h] = e.target.value.split('x').map(Number);
+                canvas.width = w;
+                canvas.height = h;
+            };
+            
+            // 背景颜色
+            document.getElementById('prop-bg-color').onchange = (e) => {
+                ctx.fillStyle = e.target.value;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            };
+        }
+        
+        // ==================== 工具函数 ====================
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('show');
+        }
+        
+        function updateConnectionStatus(connected) {
+            const el = document.getElementById('status-connection');
+            if (connected) {
+                el.textContent = '● 已连接';
+                el.className = 'status-item status-ok';
+            } else {
+                el.textContent = '● 未连接';
+                el.className = 'status-item';
+            }
+        }
+        
+        // 启动
+        init();
+    </script>
+</body>
+</html>
