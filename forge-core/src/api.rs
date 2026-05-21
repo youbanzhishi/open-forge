@@ -10,6 +10,7 @@ use axum::{Json, Router};
 use chrono::Utc;
 use uuid::Uuid;
 
+use crate::bus::BusMessage;
 use crate::error::ForgeError;
 use crate::models::*;
 use crate::state::AppState;
@@ -62,7 +63,13 @@ async fn create_project(
         }),
     };
 
-    state.projects.write().await.insert(id, project.clone());
+    state.projects.write().await.insert(id.clone(), project.clone());
+    
+    // 发布消息
+    state.bus.publish(BusMessage::ProjectCreated {
+        project_id: id.clone(),
+    });
+    
     Ok((StatusCode::CREATED, Json(project)))
 }
 
@@ -146,7 +153,14 @@ async fn create_scene(
         updated_at: now,
     };
 
-    state.scenes.write().await.insert(id, scene.clone());
+    state.scenes.write().await.insert(id.clone(), scene.clone());
+    
+    // 发布消息
+    state.bus.publish(BusMessage::SceneCreated {
+        project_id: scene.project_id.clone(),
+        scene_id: id.clone(),
+    });
+    
     Ok((StatusCode::CREATED, Json(scene)))
 }
 
