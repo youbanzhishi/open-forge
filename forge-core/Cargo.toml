@@ -17,6 +17,7 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 uuid = { workspace = true }
 chrono = { workspace = true }
+parking_lot = "0.12"
 extension-registry = { workspace = true }
 script-forge = { workspace = true }
 runtime-abstraction = { workspace = true }
