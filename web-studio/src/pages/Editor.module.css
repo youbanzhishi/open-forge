@@ -1,0 +1,47 @@
+.editor { height: 100%; display: flex; flex-direction: column; }
+.toolbar {
+  display: flex; align-items: center; gap: 16px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--border); margin-bottom: 16px;
+}
+.toolbar h2 { font-size: 18px; font-weight: 600; flex: 1; }
+.tabs { display: flex; gap: 8px; }
+.tab {
+  padding: 6px 12px; border-radius: 6px; text-decoration: none;
+  color: var(--text-secondary); font-size: 13px; background: var(--bg-secondary);
+  border: 1px solid var(--border);
+}
+.tab:hover { border-color: var(--accent); color: var(--text-primary); }
+.modeToggle { display: flex; gap: 4px; }
+.modeToggle button {
+  padding: 4px 12px; border-radius: 4px; border: 1px solid var(--border);
+  background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer; font-size: 12px;
+}
+.activeMode { background: var(--accent) !important; color: white !important; border-color: var(--accent) !important; }
+
+.content { display: flex; flex: 1; gap: 16px; min-height: 0; }
+.sceneList { width: 160px; background: var(--bg-secondary); border-radius: 8px; padding: 8px; overflow-y: auto; }
+.sceneItem {
+  padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 13px;
+  color: var(--text-secondary); margin-bottom: 2px;
+}
+.sceneItem:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+.activeScene { background: var(--bg-tertiary); color: var(--accent); font-weight: 500; }
+
+.canvas { border-radius: 8px; border: 1px solid var(--border); flex: 1; }
+.yamlEditor {
+  flex: 1; background: var(--bg-secondary); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px; color: var(--text-primary); font-family: monospace;
+  font-size: 13px; resize: none; min-height: 400px;
+}
+
+.inspector { width: 240px; background: var(--bg-secondary); border-radius: 8px; padding: 12px; overflow-y: auto; }
+.inspector h3 { font-size: 14px; margin-bottom: 12px; color: var(--text-secondary); }
+.inspectorContent { display: flex; flex-direction: column; gap: 8px; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; }
+.field input {
+  background: var(--bg-primary); border: 1px solid var(--border); border-radius: 4px;
+  padding: 4px 8px; color: var(--text-primary); font-size: 13px;
+}
+.hint { font-size: 13px; color: var(--text-secondary); }
+.loading { text-align: center; padding: 48px; color: var(--text-secondary); }
