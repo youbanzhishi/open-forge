@@ -1,0 +1,33 @@
+.page { max-width: 700px; }
+.page h2 { font-size: 20px; margin-bottom: 20px; }
+.platforms { display: flex; gap: 12px; margin-bottom: 24px; }
+.platformBtn {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 16px 24px; background: var(--bg-secondary); border: 1px solid var(--border);
+  border-radius: 8px; cursor: pointer; color: var(--text-primary); font-size: 14px;
+  transition: border-color 0.15s;
+}
+.platformBtn:hover:not(:disabled) { border-color: var(--accent); }
+.platformBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+.platformIcon { font-size: 28px; }
+.buildInfo { background: var(--bg-secondary); border-radius: 8px; padding: 16px; margin-bottom: 24px; }
+.buildStatus { margin-bottom: 8px; }
+.progress { height: 8px; background: var(--bg-primary); border-radius: 4px; overflow: hidden; }
+.progressBar { height: 100%; background: var(--accent); transition: width 0.5s; }
+.download {
+  display: inline-block; margin-top: 12px; padding: 8px 16px; background: var(--success);
+  color: #000; border-radius: 6px; text-decoration: none; font-size: 14px;
+}
+.error { color: var(--error); margin-top: 8px; font-size: 13px; }
+.queued, .building, .success, .failed {
+  font-size: 11px; padding: 2px 8px; border-radius: 10px; text-transform: uppercase;
+}
+.queued { background: var(--bg-tertiary); color: var(--text-secondary); }
+.building { background: var(--warning); color: #000; }
+.success { background: var(--success); color: #000; }
+.failed { background: var(--error); color: #fff; }
+.history h3 { font-size: 14px; margin-bottom: 12px; color: var(--text-secondary); }
+.buildItem {
+  display: flex; gap: 16px; padding: 8px; font-size: 13px;
+  border-bottom: 1px solid var(--border);
+}
