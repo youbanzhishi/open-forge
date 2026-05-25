@@ -1,0 +1,22 @@
+.page { max-width: 900px; }
+.header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.header h2 { font-size: 20px; }
+.header button {
+  padding: 6px 14px; background: var(--accent); color: white; border: none;
+  border-radius: 6px; cursor: pointer; font-size: 13px;
+}
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.card {
+  background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px;
+  padding: 12px; display: flex; align-items: center; gap: 10px; position: relative;
+}
+.icon { font-size: 24px; }
+.info { display: flex; flex-direction: column; gap: 2px; }
+.info strong { font-size: 13px; }
+.info span { font-size: 11px; color: var(--text-secondary); }
+.deleteBtn {
+  position: absolute; top: 6px; right: 6px; background: none; border: none;
+  color: var(--text-secondary); cursor: pointer;
+}
+.deleteBtn:hover { color: var(--error); }
+.empty { color: var(--text-secondary); padding: 32px; text-align: center; }
