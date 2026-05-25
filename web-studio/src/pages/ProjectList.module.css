@@ -1,0 +1,49 @@
+.page { max-width: 1200px; margin: 0 auto; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.header h1 { font-size: 24px; font-weight: 600; }
+.createBtn {
+  padding: 8px 16px; background: var(--accent); color: white; border: none;
+  border-radius: 6px; cursor: pointer; font-size: 14px;
+}
+.createBtn:hover { background: var(--accent-hover); }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+
+.card {
+  background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px;
+  padding: 16px; cursor: pointer; transition: border-color 0.15s; position: relative;
+}
+.card:hover { border-color: var(--accent); }
+.cardHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.cardHeader h3 { font-size: 16px; font-weight: 500; }
+.status { font-size: 11px; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; }
+.draft { background: var(--bg-tertiary); color: var(--text-secondary); }
+.building { background: var(--warning); color: #000; }
+.ready { background: var(--success); color: #000; }
+.error { background: var(--error); color: #fff; }
+.cardDesc { font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; }
+.cardMeta { display: flex; gap: 16px; font-size: 12px; color: var(--text-secondary); }
+.deleteBtn {
+  position: absolute; top: 8px; right: 8px; background: none; border: none;
+  color: var(--text-secondary); cursor: pointer; font-size: 18px; padding: 4px;
+}
+.deleteBtn:hover { color: var(--error); }
+
+.createForm {
+  background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px;
+  padding: 16px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px;
+}
+.createForm input, .createForm textarea {
+  background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px;
+  padding: 8px 12px; color: var(--text-primary); font-size: 14px;
+}
+.createForm textarea { min-height: 60px; resize: vertical; }
+.formActions { display: flex; gap: 8px; }
+.formActions button {
+  padding: 6px 16px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--bg-primary); color: var(--text-primary); cursor: pointer;
+}
+.formActions button:first-child { background: var(--accent); border-color: var(--accent); }
+
+.loading { text-align: center; padding: 48px; color: var(--text-secondary); }
+.empty { text-align: center; padding: 48px; color: var(--text-secondary); grid-column: 1 / -1; }
