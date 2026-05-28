@@ -23,6 +23,7 @@ impl ForgeServer {
     /// 构建路由
     pub fn router(&self) -> Router {
         api::routes()
+            .route("/health", axum::routing::get(health_check))
             .route("/api/v1/save", post(save_data))
             .route("/api/v1/load", post(load_data))
             .layer(CorsLayer::permissive())
@@ -64,4 +65,14 @@ async fn load_data(
         Ok(_) => Json(serde_json::json!({ "status": "ok", "message": "Data loaded" })),
         Err(e) => Json(serde_json::json!({ "status": "error", "message": e.to_string() })),
     }
+}
+
+
+/// 健康检查端点（无需认证）
+async fn health_check() -> Json<serde_json::Value> {
+    Json(serde_json::json!({
+        "status": "ok",
+        "version": "0.1.0",
+        "service": "forge-core"
+    }))
 }
