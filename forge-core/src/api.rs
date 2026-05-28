@@ -33,6 +33,16 @@ pub fn routes() -> Router<Arc<AppState>> {
         // 构建
         .route("/api/v1/projects/:id/build", post(start_build))
         .route("/api/v1/builds/:id", get(get_build))
+        // 实体管理
+        .route("/api/v1/scenes/:id/entities", post(create_entity))
+        .route("/api/v1/scenes/:id/entities", get(list_entities))
+        .route("/api/v1/entities/:id", put(update_entity))
+        .route("/api/v1/entities/:id", delete(delete_entity))
+        // 资产管理
+        .route("/api/v1/assets", post(upload_asset))
+        .route("/api/v1/assets", get(list_assets))
+        .route("/api/v1/assets/:id", get(get_asset))
+        .route("/api/v1/assets/:id", delete(delete_asset))
 }
 
 // === 项目 CRUD ===
@@ -266,4 +276,129 @@ async fn get_build(
         .cloned()
         .map(Json)
         .ok_or_else(|| ForgeError::NotFound(format!("build {}", id)))
+}
+
+
+// === 实体管理 ===
+
+async fn create_entity(
+    State(state): State<Arc<AppState>>,
+    Path(scene_id): Path<String>,
+    Json(req): Json<CreateEntityRequest>,
+) -> Result<impl IntoResponse, ForgeError> {
+    let scenes = state.scenes.read().await;
+    if !scenes.contains_key(&scene_id) {
+        return Err(ForgeError::NotFound(format!("scene {}", scene_id)));
+    }
+    drop(scenes);
+
+    let id = format!("entity_{}", Uuid::new_v4());
+    let entity = Entity {
+        id: id.clone(),
+        scene_id,
+        name: req.name,
+        entity_type: req.entity_type.unwrap_or_else(|| "default".to_string()),
+        components: req.components.unwrap_or_default(),
+        position: req.position,
+        rotation: req.rotation,
+        scale: req.scale,
+        parent_id: req.parent_id,
+    };
+
+    state.entities.write().await.insert(id.clone(), entity.clone());
+    
+    state.bus.publish(BusMessage::EntityCreated {
+        scene_id: entity.scene_id.clone(),
+        entity_id: id,
+    });
+
+    Ok((StatusCode::CREATED, Json(entity)))
+}
+
+async fn list_entities(
+    State(state): State<Arc<AppState>>,
+    Path(scene_id): Path<String>,
+) -> Json<Vec<Entity>> {
+    let entities = state.entities.read().await;
+    let list: Vec<Entity> = entities
+        .values()
+        .filter(|e| e.scene_id == scene_id)
+        .cloned()
+        .collect();
+    Json(list)
+}
+
+async fn update_entity(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+    Json(req): Json<CreateEntityRequest>,
+) -> Result<Json<Entity>, ForgeError> {
+    let mut entities = state.entities.write().await;
+    let entity = entities
+        .get_mut(&id)
+        .ok_or_else(|| ForgeError::NotFound(format!("entity {}", id)))?;
+
+    entity.name = req.name;
+    if let Some(t) = req.entity_type { entity.entity_type = t; }
+    if let Some(c) = req.components { entity.components = c; }
+    entity.position = req.position;
+    entity.rotation = req.rotation;
+    entity.scale = req.scale;
+    entity.parent_id = req.parent_id;
+
+    Ok(Json(entity.clone()))
+}
+
+async fn delete_entity(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+) -> Result<StatusCode, ForgeError> {
+    let mut entities = state.entities.write().await;
+    entities
+        .remove(&id)
+        .map(|_| StatusCode::NO_CONTENT)
+        .ok_or_else(|| ForgeError::NotFound(format!("entity {}", id)))
+}
+
+// === 资产管理 ===
+
+async fn upload_asset(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<CreateAssetRequest>,
+) -> Result<impl IntoResponse, ForgeError> {
+    let id = format!("asset_{}", Uuid::new_v4());
+    let asset = Asset {
+        id: id.clone(),
+        name: req.name,
+        asset_type: req.asset_type,
+        url: req.url,
+        size: req.size.unwrap_or(0),
+        created_at: Utc::now(),
+    };
+
+    state.assets.write().await.insert(id.clone(), asset.clone());
+    Ok((StatusCode::CREATED, Json(asset)))
+}
+
+async fn list_assets(State(state): State<Arc<AppState>>) -> Json<Vec<Asset>> {
+    let assets = state.assets.read().await;
+    Json(assets.values().cloned().collect())
+}
+
+async fn get_asset(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+) -> Result<Json<Asset>, ForgeError> {
+    let assets = state.assets.read().await;
+    assets.get(&id).cloned().map(Json)
+        .ok_or_else(|| ForgeError::NotFound(format!("asset {}", id)))
+}
+
+async fn delete_asset(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+) -> Result<StatusCode, ForgeError> {
+    let mut assets = state.assets.write().await;
+    assets.remove(&id).map(|_| StatusCode::NO_CONTENT)
+        .ok_or_else(|| ForgeError::NotFound(format!("asset {}", id)))
 }
