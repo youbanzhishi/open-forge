@@ -71,3 +71,57 @@ pub enum BuildStatus {
     Completed,
     Failed,
 }
+
+
+// === 实体 ===
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Entity {
+    pub id: String,
+    pub scene_id: String,
+    pub name: String,
+    pub entity_type: String,
+    pub components: serde_json::Value,
+    pub position: Option<Vec3>,
+    pub rotation: Option<Vec3>,
+    pub scale: Option<Vec3>,
+    pub parent_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Vec3 {
+    pub x: f64,
+    pub y: f64,
+    pub z: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateEntityRequest {
+    pub name: String,
+    pub entity_type: Option<String>,
+    pub components: Option<serde_json::Value>,
+    pub position: Option<Vec3>,
+    pub rotation: Option<Vec3>,
+    pub scale: Option<Vec3>,
+    pub parent_id: Option<String>,
+}
+
+// === 资产 ===
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Asset {
+    pub id: String,
+    pub name: String,
+    pub asset_type: String,
+    pub url: String,
+    pub size: u64,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateAssetRequest {
+    pub name: String,
+    pub asset_type: String,
+    pub url: String,
+    pub size: Option<u64>,
+}
