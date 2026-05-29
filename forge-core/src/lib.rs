@@ -4,12 +4,15 @@
 //! RESTful API + WebSocket 实时事件流。
 
 pub mod api;
+pub mod auth;
 pub mod bus;
 pub mod error;
 pub mod models;
 pub mod server;
 pub mod state;
+pub mod ws;
 
 pub use bus::{BusMessage, BusMessageHandler, ForgeBus};
 pub use error::ForgeError;
 pub use server::ForgeServer;
+pub use state::AppState;
