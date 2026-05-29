@@ -6,7 +6,7 @@ use tower_http::cors::CorsLayer;
 use tracing::info;
 
 use crate::api;
-use crate::auth::{self, AuthConfig, AuthSubject, TokenRequest, TokenResponse};
+use crate::auth::{self, AuthConfig, TokenRequest, TokenResponse};
 use crate::state::AppState;
 use crate::ws;
 
@@ -30,7 +30,7 @@ impl ForgeServer {
             // 保存/加载数据
             .route("/api/v1/save", post(save_data))
             .route("/api/v1/load", post(load_data))
-            // 认证失败由 AuthSubject extractor 返回 401
+            // 认证中间件
             .route_layer(axum::middleware::from_fn_with_state(
                 self.state.auth_config.clone(),
                 auth_middleware,
@@ -73,12 +73,15 @@ impl ForgeServer {
 /// 认证中间件
 async fn auth_middleware(
     axum::extract::State(config): axum::extract::State<Arc<AuthConfig>>,
-    mut req: axum::http::Request<axum::body::Body>,
+    req: axum::http::Request<axum::body::Body>,
     next: axum::middleware::Next,
 ) -> Result<axum::response::Response, auth::AuthError> {
-    // 提取认证主体
-    let subject = AuthSubject::from_request_parts(&mut req.parts, &config).await?;
-    // 将认证信息注入请求扩展，供后续 handler 使用
+    // 分离请求头和请求体
+    let (parts, body) = req.into_parts();
+    // 从请求头中提取认证信息
+    let subject = auth::extract_auth(&parts, &config)?;
+    // 重新组装请求，注入认证信息
+    let mut req = axum::http::Request::from_parts(parts, body);
     req.extensions_mut().insert(subject);
     Ok(next.run(req).await)
 }
