@@ -4,7 +4,6 @@
 //! - JWT: 动态令牌，用于 Web Studio，通过 `Authorization: Bearer <token>` 传递
 //! - /health 端点免认证
 
-use axum::extract::{FromRequestParts, Query};
 use axum::http::request::Parts;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -77,10 +76,10 @@ pub fn verify_jwt(config: &AuthConfig, token: &str) -> Result<JwtClaims, ForgeEr
         &Validation::default(),
     )
     .map(|data| data.claims)
-    .map_err(|e| ForgeError::Unauthorized)
+    .map_err(|_| ForgeError::Unauthorized)
 }
 
-/// 认证主体 — 从请求中提取
+/// 认证主体
 #[derive(Debug, Clone)]
 pub struct AuthSubject {
     pub id: String,
@@ -111,57 +110,48 @@ impl IntoResponse for AuthError {
     }
 }
 
-#[axum::async_trait]
-impl FromRequestParts<Arc<AuthConfig>> for AuthSubject {
-    type Rejection = AuthError;
+/// 从请求头中提取认证信息（纯函数，不用 trait）
+pub fn extract_auth(parts: &Parts, config: &AuthConfig) -> Result<AuthSubject, AuthError> {
+    // 1. 尝试 API Key
+    if let Some(api_key) = parts.headers.get("X-API-Key") {
+        if let Ok(key_str) = api_key.to_str() {
+            if key_str == config.api_key {
+                return Ok(AuthSubject {
+                    id: "api-agent".to_string(),
+                    auth_type: AuthType::ApiKey,
+                });
+            }
+        }
+    }
 
-    async fn from_request_parts(
-        parts: &mut Parts,
-        config: &Arc<AuthConfig>,
-    ) -> Result<Self, Self::Rejection> {
-        // 1. 尝试 API Key
-        if let Some(api_key) = parts.headers.get("X-API-Key") {
-            if let Ok(key_str) = api_key.to_str() {
-                if key_str == config.api_key {
+    // 2. 尝试 JWT Bearer Token
+    if let Some(auth_header) = parts.headers.get("Authorization") {
+        if let Ok(auth_str) = auth_header.to_str() {
+            if let Some(token) = auth_str.strip_prefix("Bearer ") {
+                if let Ok(claims) = verify_jwt(config, token) {
                     return Ok(AuthSubject {
-                        id: "api-agent".to_string(),
-                        auth_type: AuthType::ApiKey,
+                        id: claims.sub,
+                        auth_type: AuthType::Jwt,
                     });
                 }
             }
         }
+    }
 
-        // 2. 尝试 JWT Bearer Token
-        if let Some(auth_header) = parts.headers.get("Authorization") {
-            if let Ok(auth_str) = auth_header.to_str() {
-                if let Some(token) = auth_str.strip_prefix("Bearer ") {
-                    if let Ok(claims) = verify_jwt(config, token) {
-                        return Ok(AuthSubject {
-                            id: claims.sub,
-                            auth_type: AuthType::Jwt,
-                        });
-                    }
-                }
-            }
-        }
-
-        // 3. 尝试 Query 参数 token（用于 WebSocket）
-        if let Ok(query) = Query::<TokenQuery>::try_from_uri(&parts.uri) {
-            if let Ok(claims) = verify_jwt(config, &query.token) {
+    // 3. 尝试 Query 参数 token（用于 WebSocket）
+    let query = parts.uri.query().unwrap_or("");
+    for pair in query.split('&') {
+        if let Some(token) = pair.strip_prefix("token=") {
+            if let Ok(claims) = verify_jwt(config, token) {
                 return Ok(AuthSubject {
                     id: claims.sub,
                     auth_type: AuthType::Jwt,
                 });
             }
         }
-
-        Err(AuthError)
     }
-}
 
-#[derive(Deserialize)]
-struct TokenQuery {
-    token: String,
+    Err(AuthError)
 }
 
 /// Token 请求
