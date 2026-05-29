@@ -65,7 +65,7 @@ impl ForgeBus {
             subscribers: RwLock::new(HashMap::new()),
         }
     }
-    
+
     pub fn subscribe(&self, message_type: impl Into<String>, handler: Arc<dyn BusMessageHandler>) {
         let message_type = message_type.into();
         debug!("Subscribing to: {}", message_type);
@@ -75,26 +75,26 @@ impl ForgeBus {
             .or_insert_with(Vec::new)
             .push(Subscription { handler });
     }
-    
+
     pub fn unsubscribe(&self, message_type: impl Into<String>) {
         self.subscribers.write().remove(&message_type.into());
     }
-    
+
     pub fn publish(&self, message: BusMessage) {
         let message_type = message.type_name();
         info!("Publishing: {}", message_type);
-        
+
         let subscribers = self.subscribers.read();
         let handlers: Vec<Arc<dyn BusMessageHandler>> = subscribers
             .get(&message_type.to_string())
             .map(|v| v.iter().map(|s| s.handler.clone()).collect())
             .unwrap_or_default();
-        
+
         let wildcard_handlers: Vec<Arc<dyn BusMessageHandler>> = subscribers
             .get("*")
             .map(|v| v.iter().map(|s| s.handler.clone()).collect())
             .unwrap_or_default();
-        
+
         for handler in handlers.into_iter().chain(wildcard_handlers.into_iter()) {
             handler.handle(&message);
         }
@@ -107,12 +107,8 @@ impl BusMessage {
             BusMessage::ProjectCreated { .. } => "project_created",
             BusMessage::ProjectUpdated { .. } => "project_updated",
             BusMessage::ProjectDeleted { .. } => "project_deleted",
-            BusMessage::EntityCreated {
-        project_id: String,
-        scene_id: String,
-        entity_id: String,
-    },
-    SceneCreated { .. } => "scene_created",
+            BusMessage::EntityCreated { .. } => "entity_created",
+            BusMessage::SceneCreated { .. } => "scene_created",
             BusMessage::SceneUpdated { .. } => "scene_updated",
             BusMessage::SceneDeleted { .. } => "scene_deleted",
             BusMessage::NodeAdded { .. } => "node_added",
