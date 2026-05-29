@@ -74,12 +74,11 @@ async fn create_project(
     };
 
     state.projects.write().await.insert(id.clone(), project.clone());
-    
-    // 发布消息
-    state.bus.publish(BusMessage::ProjectCreated {
-        project_id: id.clone(),
+
+    state.emit(BusMessage::ProjectCreated {
+        project_id: id,
     });
-    
+
     Ok((StatusCode::CREATED, Json(project)))
 }
 
@@ -118,7 +117,11 @@ async fn update_project(
         project.settings = settings;
     }
 
-    Ok(Json(project.clone()))
+    let updated = project.clone();
+    drop(projects);
+    state.emit(BusMessage::ProjectUpdated { project_id: id });
+
+    Ok(Json(updated))
 }
 
 async fn delete_project(
@@ -156,7 +159,7 @@ async fn create_scene(
     let now = Utc::now();
     let scene = Scene {
         id: id.clone(),
-        project_id,
+        project_id: project_id.clone(),
         name: req.name,
         yaml_content: req.yaml_content,
         created_at: now,
@@ -164,13 +167,12 @@ async fn create_scene(
     };
 
     state.scenes.write().await.insert(id.clone(), scene.clone());
-    
-    // 发布消息
-    state.bus.publish(BusMessage::SceneCreated {
-        project_id: scene.project_id.clone(),
-        scene_id: id.clone(),
+
+    state.emit(BusMessage::SceneCreated {
+        project_id,
+        scene_id: id,
     });
-    
+
     Ok((StatusCode::CREATED, Json(scene)))
 }
 
@@ -214,11 +216,19 @@ async fn update_scene(
         .get_mut(&id)
         .ok_or_else(|| ForgeError::NotFound(format!("scene {}", id)))?;
 
+    let project_id = scene.project_id.clone();
     scene.name = req.name;
     scene.yaml_content = req.yaml_content;
     scene.updated_at = Utc::now();
 
-    Ok(Json(scene.clone()))
+    let updated = scene.clone();
+    drop(scenes);
+    state.emit(BusMessage::SceneUpdated {
+        project_id,
+        scene_id: id,
+    });
+
+    Ok(Json(updated))
 }
 
 async fn delete_scene(
@@ -249,7 +259,7 @@ async fn start_build(
     let id = format!("build_{}", Uuid::new_v4());
     let build = Build {
         id: id.clone(),
-        project_id,
+        project_id: project_id.clone(),
         status: BuildStatus::Pending,
         progress: 0,
         output_url: None,
@@ -258,10 +268,12 @@ async fn start_build(
         error: None,
     };
 
-    state.builds.write().await.insert(id, build.clone());
+    state.builds.write().await.insert(id.clone(), build.clone());
 
-    // TODO: 异步启动构建任务
-    // tokio::spawn(run_build(state.clone(), build.id.clone()));
+    state.emit(BusMessage::BuildStarted {
+        project_id,
+        build_id: id,
+    });
 
     Ok((StatusCode::ACCEPTED, Json(build)))
 }
@@ -278,7 +290,6 @@ async fn get_build(
         .ok_or_else(|| ForgeError::NotFound(format!("build {}", id)))
 }
 
-
 // === 实体管理 ===
 
 async fn create_entity(
@@ -286,16 +297,19 @@ async fn create_entity(
     Path(scene_id): Path<String>,
     Json(req): Json<CreateEntityRequest>,
 ) -> Result<impl IntoResponse, ForgeError> {
-    let scenes = state.scenes.read().await;
-    if !scenes.contains_key(&scene_id) {
-        return Err(ForgeError::NotFound(format!("scene {}", scene_id)));
-    }
-    drop(scenes);
+    // 查找场景以获取 project_id
+    let project_id = {
+        let scenes = state.scenes.read().await;
+        scenes
+            .get(&scene_id)
+            .map(|s| s.project_id.clone())
+            .ok_or_else(|| ForgeError::NotFound(format!("scene {}", scene_id)))?
+    };
 
     let id = format!("entity_{}", Uuid::new_v4());
     let entity = Entity {
         id: id.clone(),
-        scene_id,
+        scene_id: scene_id.clone(),
         name: req.name,
         entity_type: req.entity_type.unwrap_or_else(|| "default".to_string()),
         components: req.components.unwrap_or_default(),
@@ -306,9 +320,10 @@ async fn create_entity(
     };
 
     state.entities.write().await.insert(id.clone(), entity.clone());
-    
-    state.bus.publish(BusMessage::EntityCreated {
-        scene_id: entity.scene_id.clone(),
+
+    state.emit(BusMessage::EntityCreated {
+        project_id,
+        scene_id,
         entity_id: id,
     });
 
@@ -339,8 +354,12 @@ async fn update_entity(
         .ok_or_else(|| ForgeError::NotFound(format!("entity {}", id)))?;
 
     entity.name = req.name;
-    if let Some(t) = req.entity_type { entity.entity_type = t; }
-    if let Some(c) = req.components { entity.components = c; }
+    if let Some(t) = req.entity_type {
+        entity.entity_type = t;
+    }
+    if let Some(c) = req.components {
+        entity.components = c;
+    }
     entity.position = req.position;
     entity.rotation = req.rotation;
     entity.scale = req.scale;
@@ -390,7 +409,10 @@ async fn get_asset(
     Path(id): Path<String>,
 ) -> Result<Json<Asset>, ForgeError> {
     let assets = state.assets.read().await;
-    assets.get(&id).cloned().map(Json)
+    assets
+        .get(&id)
+        .cloned()
+        .map(Json)
         .ok_or_else(|| ForgeError::NotFound(format!("asset {}", id)))
 }
 
@@ -399,6 +421,8 @@ async fn delete_asset(
     Path(id): Path<String>,
 ) -> Result<StatusCode, ForgeError> {
     let mut assets = state.assets.write().await;
-    assets.remove(&id).map(|_| StatusCode::NO_CONTENT)
+    assets
+        .remove(&id)
+        .map(|_| StatusCode::NO_CONTENT)
         .ok_or_else(|| ForgeError::NotFound(format!("asset {}", id)))
 }
