@@ -1,6 +1,5 @@
 use crate::error::BuildError;
 use crate::manifest::{BuildManifest, BuildResult, BuildTarget};
-use std::path::Path;
 
 /// 构建管线
 pub struct BuildPipeline {
@@ -34,7 +33,7 @@ impl BuildPipeline {
         
         // 创建输出目录
         std::fs::create_dir_all(&output_path).map_err(|e| {
-            BuildError::Io(std::io::Error::new(std::io::ErrorKind::Other, format!(
+            BuildError::Io(std::io::Error::other(format!(
                 "Failed to create output directory: {}", e
             )))
         })?;
@@ -42,7 +41,7 @@ impl BuildPipeline {
         // 生成 index.html
         let html = self.generate_html(manifest);
         std::fs::write(format!("{}/index.html", output_path), html).map_err(|e| {
-            BuildError::Io(std::io::Error::new(std::io::ErrorKind::Other, format!(
+            BuildError::Io(std::io::Error::other(format!(
                 "Failed to write index.html: {}", e
             )))
         })?;
@@ -50,7 +49,7 @@ impl BuildPipeline {
         // 生成 game.js (游戏逻辑)
         let js = self.generate_game_js(manifest);
         std::fs::write(format!("{}/game.js", output_path), js).map_err(|e| {
-            BuildError::Io(std::io::Error::new(std::io::ErrorKind::Other, format!(
+            BuildError::Io(std::io::Error::other(format!(
                 "Failed to write game.js: {}", e
             )))
         })?;
