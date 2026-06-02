@@ -7,8 +7,10 @@ use crate::error::AssetError;
 ///
 /// Phase 1: 内存存储 + 本地文件系统
 /// Phase 2: 对象存储（S3/MinIO）
+#[allow(dead_code)]
 pub struct AssetStore {
     assets: HashMap<String, Asset>,
+    #[allow(dead_code)]
     base_path: String,
 }
 
