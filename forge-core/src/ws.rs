@@ -12,7 +12,7 @@ use futures::{SinkExt, StreamExt};
 use serde::Deserialize;
 use tracing::{info, warn, error};
 
-use crate::auth::{verify_jwt, AuthConfig};
+use crate::auth::verify_jwt;
 use crate::bus::BusMessage;
 use crate::state::AppState;
 
