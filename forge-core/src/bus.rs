@@ -72,7 +72,7 @@ impl ForgeBus {
         let mut subscribers = self.subscribers.write();
         subscribers
             .entry(message_type)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(Subscription { handler });
     }
 
@@ -95,7 +95,7 @@ impl ForgeBus {
             .map(|v| v.iter().map(|s| s.handler.clone()).collect())
             .unwrap_or_default();
 
-        for handler in handlers.into_iter().chain(wildcard_handlers.into_iter()) {
+        for handler in handlers.into_iter().chain(wildcard_handlers) {
             handler.handle(&message);
         }
     }
