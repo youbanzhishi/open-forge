@@ -10,7 +10,6 @@ use axum::response::{IntoResponse, Response};
 use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 
 use crate::error::ForgeError;
 
