@@ -10,7 +10,6 @@ use axum::extract::{Query, State, WebSocketUpgrade, ws::{Message, WebSocket}};
 use axum::response::IntoResponse;
 use futures::{SinkExt, StreamExt};
 use serde::Deserialize;
-use tokio::sync::broadcast;
 use tracing::{info, warn, error};
 
 use crate::auth::{verify_jwt, AuthConfig};
@@ -92,7 +91,7 @@ async fn handle_ws(socket: WebSocket, state: Arc<AppState>, project_filter: Opti
                 }
             };
 
-            if sender.send(Message::Text(json.into())).await.is_err() {
+            if sender.send(Message::Text(json)).await.is_err() {
                 break;
             }
         }
